@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stella — the receptionist that never clocks out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,450;9..144,560;9..144,650&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F6F3FA;
+    --bg-alt: #FBF7F1;
+    --panel: #FFFFFF;
+    --ink: #2C2340;
+    --ink-soft: #6E6482;
+    --ink-faint: #9C93AC;
+    --lavender: #C9B6E4;
+    --lavender-deep: #A78BC9;
+    --peach: #F3C79E;
+    --coral: #EFA79E;
+    --sky: #A9D8E4;
+    --mint: #B7E1CE;
+    --butter: #F1DC9C;
+    --line: #E7E0F0;
+    --radius-lg: 28px;
+    --radius-md: 18px;
+    --radius-sm: 10px;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  h1,h2,h3{
+    font-family: 'Fraunces', serif;
+    font-weight: 560;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  p{ margin: 0; }
+  a{ color: inherit; text-decoration: none; }
+  img,svg{ display:block; }
+  .mono{ font-family: 'IBM Plex Mono', monospace; }
+  ::selection{ background: var(--lavender); color: var(--ink); }
+
+  .wrap{
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+  }
+
+  /* ---------- REVEAL ANIMATION ---------- */
+  .reveal{
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity .7s cubic-bezier(.16,.8,.24,1), transform .7s cubic-bezier(.16,.8,.24,1);
+  }
+  .reveal.in-view{ opacity: 1; transform: translateY(0); }
+  .reveal-stagger.in-view .stagger-item{ opacity: 1; transform: translateY(0); }
+  .stagger-item{
+    opacity: 0; transform: translateY(20px);
+    transition: opacity .6s cubic-bezier(.16,.8,.24,1), transform .6s cubic-bezier(.16,.8,.24,1);
+  }
+  .stagger-item:nth-child(1){ transition-delay: .02s; }
+  .stagger-item:nth-child(2){ transition-delay: .1s; }
+  .stagger-item:nth-child(3){ transition-delay: .18s; }
+  .stagger-item:nth-child(4){ transition-delay: .26s; }
+  .stagger-item:nth-child(5){ transition-delay: .34s; }
+
+  /* ---------- NAV ---------- */
+  nav{
+    position: sticky; top:0; z-index: 50;
+    background: rgba(246,243,250,0.78);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    transition: box-shadow .3s ease, padding .3s ease;
+  }
+  nav.scrolled{ box-shadow: 0 8px 30px -20px rgba(44,35,64,0.35); }
+  .nav-inner{
+    max-width:1120px; margin:0 auto; padding: 18px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Fraunces',serif; font-weight:650; font-size: 20px; }
+  .logo-mark{
+    width: 26px; height: 26px; border-radius: 50%;
+    background: conic-gradient(from 200deg, var(--peach), var(--coral), var(--lavender), var(--sky), var(--peach));
+    box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px var(--line);
+    animation: spin 10s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .nav-links{ display:flex; align-items:center; gap: 34px; }
+  .nav-links a{ font-size: 14.5px; color: var(--ink-soft); font-weight: 500; position: relative; }
+  .nav-links a::after{
+    content:''; position:absolute; left:0; right:0; bottom:-4px; height:1.5px;
+    background: var(--lavender-deep); transform: scaleX(0); transform-origin: left;
+    transition: transform .25s ease;
+  }
+  .nav-links a:hover{ color: var(--ink); }
+  .nav-links a:hover::after{ transform: scaleX(1); }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding: 11px 22px; border-radius: 999px; font-weight:600; font-size:14.5px;
+    border: 1px solid transparent; cursor:pointer; transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  .btn-primary{ background: var(--ink); color: #FBF7F1; }
+  .btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(44,35,64,0.45); }
+  .btn-primary:active{ transform: translateY(0); }
+  .btn-ghost{ border-color: var(--line); color: var(--ink); background: #fff; }
+  .btn-ghost:hover{ border-color: var(--lavender-deep); transform: translateY(-2px); box-shadow: 0 10px 20px -10px rgba(167,139,201,0.5); }
+
+  /* ---------- HERO ---------- */
+  header.hero{ padding: 96px 0 40px; position: relative; overflow: hidden; }
+  .orb{
+    position:absolute; border-radius:50%; filter: blur(60px); opacity: .55; z-index:0;
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  .orb-1{ width:320px; height:320px; background: var(--lavender); top:-120px; right:-60px; animation-duration: 26s; }
+  .orb-2{ width:260px; height:260px; background: var(--peach); top:120px; left:-100px; animation-duration: 20s; animation-delay: -4s; }
+  .orb-3{ width:220px; height:220px; background: var(--mint); bottom:-100px; right:20%; animation-duration: 24s; animation-delay: -9s; }
+  @keyframes drift{
+    0%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(30px,-24px) scale(1.08); }
+    100%{ transform: translate(-20px,18px) scale(0.96); }
+  }
+  .hero .wrap > *{ position: relative; z-index: 1; }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size: 13px; font-weight:600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--lavender-deep); margin-bottom: 22px;
+  }
+  .eyebrow::before{
+    content:''; width:7px; height:7px; border-radius:50%; background: var(--coral);
+    animation: blink 2.2s ease-in-out infinite;
+  }
+  @keyframes blink{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+  .hero h1{
+    font-size: clamp(42px, 6vw, 74px);
+    line-height: 1.02;
+    max-width: 14ch;
+  }
+  .hero h1 em{ font-style: normal; color: var(--lavender-deep); position: relative; white-space: nowrap; }
+  .hero h1 em::after{
+    content:''; position:absolute; left:-2%; right:-2%; bottom:6px; height:14px; z-index:-1;
+    background: var(--butter); opacity:.6; border-radius: 6px;
+  }
+  .hero-sub{ margin-top: 26px; max-width: 46ch; font-size: 18px; color: var(--ink-soft); }
+  .hero-actions{ display:flex; gap: 14px; margin-top: 36px; flex-wrap: wrap; }
+
+  /* ---------- STELLA LINE (signature element) ---------- */
+  .stella-line-section{ margin-top: 76px; }
+  .line-card{
+    background: var(--panel);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    padding: 34px 34px 26px;
+    box-shadow: 0 30px 60px -40px rgba(44,35,64,0.35);
+    transition: box-shadow .3s ease;
+  }
+  .line-card:hover{ box-shadow: 0 40px 70px -35px rgba(44,35,64,0.42); }
+  .line-card-top{ display:flex; align-items:baseline; justify-content:space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+  .line-card-top h3{ font-size: 19px; }
+  .line-card-top .now-label{ font-size: 13px; color: var(--ink-faint); }
+  .ribbon-outer{ position: relative; padding-top: 34px; }
+  .ribbon{
+    position: relative;
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(90deg,
+      #37325A 0%, #7C6C9C 8%, var(--coral) 22%, var(--peach) 30%, var(--butter) 42%,
+      var(--sky) 55%, var(--butter) 66%, var(--peach) 76%, var(--coral) 84%, #7C6C9C 92%, #37325A 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 14s linear infinite;
+  }
+  @keyframes shimmer{ 0%{ background-position: 0% 0; } 100%{ background-position: 200% 0; } }
+  .tick{
+    position:absolute; top: -30px; transform: translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    width: max-content; opacity: 0; animation: tickIn .5s ease forwards;
+  }
+  .tick:nth-child(1){ animation-delay: .3s; }
+  .tick:nth-child(2){ animation-delay: .45s; }
+  .tick:nth-child(3){ animation-delay: .6s; }
+  .tick:nth-child(4){ animation-delay: .75s; }
+  @keyframes tickIn{ from{ opacity:0; transform: translateX(-50%) translateY(6px); } to{ opacity:1; transform: translateX(-50%) translateY(0); } }
+  .tick .dot{ width:9px; height:9px; border-radius:50%; background:#fff; border: 2px solid var(--ink); margin-top: 46px; transition: transform .2s ease; }
+  .tick:hover .dot{ transform: scale(1.3); }
+  .tick .label{
+    font-size: 11.5px; color: var(--ink-soft); background: var(--bg-alt);
+    border: 1px solid var(--line); padding: 5px 9px; border-radius: 8px;
+    white-space: nowrap; opacity: 0; transform: translateY(4px);
+    transition: opacity .2s ease, transform .2s ease; pointer-events:none;
+  }
+  .tick:hover .label{ opacity:1; transform: translateY(0); }
+  .now-dot{
+    position:absolute; top:50%; width:16px; height:16px; border-radius:50%;
+    background: #fff; border: 3px solid var(--ink); transform: translate(-50%,-50%);
+    box-shadow: 0 0 0 6px rgba(44,35,64,0.08); transition: left .6s ease;
+  }
+  .now-dot::after{
+    content:''; position:absolute; inset:-9px; border-radius:50%;
+    border: 1.5px solid var(--ink); opacity: .45; animation: pulse 2.6s ease-out infinite;
+  }
+  @keyframes pulse{ 0%{ transform: scale(0.6); opacity: .55; } 100%{ transform: scale(1.9); opacity: 0; } }
+  .ribbon-caption{ display:flex; justify-content:space-between; margin-top: 14px; font-size: 12.5px; color: var(--ink-faint); }
+
+  /* ---------- SECTION SHELL ---------- */
+  section{ padding: 96px 0; }
+  .section-alt{ background: var(--bg-alt); }
+  .section-head{ max-width: 640px; margin-bottom: 54px; }
+  .section-head .eyebrow{ margin-bottom: 16px; }
+  .section-head h2{ font-size: clamp(30px, 3.6vw, 42px); }
+  .section-head p{ margin-top: 16px; font-size: 16.5px; color: var(--ink-soft); }
+
+  /* ---------- PROBLEM STATS ---------- */
+  .stat-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .stat-card{
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md);
+    padding: 30px 26px; transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .stat-card:hover{ transform: translateY(-5px); box-shadow: 0 24px 40px -28px rgba(44,35,64,0.35); }
+  .stat-card .num{ font-family:'Fraunces',serif; font-size: 44px; font-weight: 560; color: var(--ink); }
+  .stat-card .num span{ color: var(--coral); }
+  .stat-card p{ margin-top: 10px; color: var(--ink-soft); font-size: 14.5px; }
+
+  /* ---------- METRICS BAR (count-up) ---------- */
+  .metrics-bar{
+    display:grid; grid-template-columns: repeat(4,1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-md);
+    overflow: hidden; margin-top: 54px;
+  }
+  .metric{ background: var(--panel); padding: 28px 20px; text-align:center; }
+  .metric .metric-num{ font-family:'Fraunces',serif; font-size: 38px; font-weight: 560; color: var(--lavender-deep); }
+  .metric .metric-label{ font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .step{
+    background: var(--panel); border-radius: var(--radius-md); border: 1px solid var(--line);
+    padding: 28px 24px; position: relative; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .step:hover{ transform: translateY(-6px); box-shadow: 0 26px 46px -30px rgba(44,35,64,0.4); border-color: transparent; }
+  .step .idx{ font-family:'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink-faint); margin-bottom: 18px; display:block; }
+  .step h3{ font-size: 18px; margin-bottom: 10px; }
+  .step p{ font-size: 14.5px; color: var(--ink-soft); }
+  .step-icon{ width: 38px; height: 38px; border-radius: 10px; display:flex; align-items:center; justify-content:center; margin-bottom: 18px; transition: transform .3s ease; }
+  .step:hover .step-icon{ transform: scale(1.12) rotate(-4deg); }
+
+  /* connecting line between steps on desktop */
+  .steps{ position: relative; }
+  .steps::before{
+    content:''; position:absolute; top: 66px; left: 12%; right:12%; height:1px;
+    background: repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 14px);
+    z-index:0;
+  }
+  .step{ z-index:1; }
+
+  /* ---------- VERTICALS ---------- */
+  .vert-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .vert-card{
+    background: var(--panel); border-radius: var(--radius-md); border: 1px solid var(--line);
+    padding: 28px 22px; transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .vert-card:hover{ transform: translateY(-6px); box-shadow: 0 24px 44px -30px rgba(44,35,64,0.45); }
+  .vert-icon{ width: 44px; height:44px; border-radius: 12px; margin-bottom: 20px; display:flex; align-items:center; justify-content:center; transition: transform .25s ease; }
+  .vert-card:hover .vert-icon{ transform: scale(1.1); }
+  .vert-card h3{ font-size: 17px; margin-bottom: 8px; }
+  .vert-card p{ font-size: 13.8px; color: var(--ink-soft); }
+  .vert-tag{ display:inline-block; margin-top: 14px; font-size: 11.5px; font-weight:600; letter-spacing:.03em; padding: 4px 10px; border-radius: 999px; color: var(--ink); }
+
+  /* ---------- TRANSCRIPT ---------- */
+  .transcript-layout{ display:grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .transcript-card{
+    background: var(--panel); border-radius: var(--radius-lg); border: 1px solid var(--line);
+    padding: 28px; box-shadow: 0 30px 60px -42px rgba(44,35,64,0.4);
+  }
+  .transcript-head{ display:flex; align-items:center; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .transcript-head .rec{ width:8px; height:8px; border-radius:50%; background: var(--coral); animation: blink 1.6s ease-in-out infinite; }
+  .transcript-head span{ font-size: 13px; color: var(--ink-faint); }
+  .bubble{
+    max-width: 82%; padding: 12px 16px; border-radius: 16px; font-size: 14.5px; margin-bottom: 12px;
+    opacity:0; transform: translateY(10px); animation: bubbleIn .5s ease forwards;
+  }
+  .bubble:nth-child(2){ animation-delay: .15s; }
+  .bubble:nth-child(3){ animation-delay: .4s; }
+  .bubble:nth-child(4){ animation-delay: .65s; }
+  .bubble:nth-child(5){ animation-delay: .9s; }
+  @keyframes bubbleIn{ to{ opacity:1; transform: translateY(0); } }
+  .bubble.caller{ background: var(--bg-alt); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .bubble.stella{ background: var(--lavender); color: #2C2340; margin-left: auto; border-bottom-right-radius: 4px; }
+  .bubble .who{ display:block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; opacity: .6; margin-bottom: 4px; }
+
+  .transcript-copy h2{ font-size: clamp(28px, 3vw, 36px); margin-bottom: 18px; }
+  .transcript-copy p{ color: var(--ink-soft); font-size: 16px; margin-bottom: 14px; }
+  .check-list{ list-style:none; padding:0; margin: 24px 0 0; display:flex; flex-direction:column; gap: 12px; }
+  .check-list li{ display:flex; gap: 10px; font-size: 14.5px; color: var(--ink); align-items:flex-start; }
+  .check-list .mark{ width: 18px; height:18px; border-radius:50%; background: var(--mint); flex: none; margin-top: 2px; }
+
+  /* ---------- SAFETY NETS ---------- */
+  .safety-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .safety-card{
+    display:flex; gap: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md);
+    padding: 24px; transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .safety-card:hover{ transform: translateY(-4px); box-shadow: 0 22px 40px -30px rgba(44,35,64,0.4); }
+  .safety-num{ font-family:'IBM Plex Mono',monospace; font-size: 13px; color: var(--lavender-deep); flex: none; padding-top: 3px; }
+  .safety-card h3{ font-size: 16px; margin-bottom: 6px; }
+  .safety-card p{ font-size: 14px; color: var(--ink-soft); }
+
+  /* ---------- NOTIFICATIONS / CHANNELS ---------- */
+  .channel-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .channel-card{
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md);
+    padding: 26px; text-align:left; transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .channel-card:hover{ transform: translateY(-5px); box-shadow: 0 22px 40px -28px rgba(44,35,64,0.4); }
+  .channel-icon{ width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+  .channel-card h3{ font-size:16.5px; margin-bottom:8px; }
+  .channel-card p{ font-size:13.8px; color: var(--ink-soft); }
+
+  /* ---------- ONBOARDING TIMELINE ---------- */
+  .timeline{ display:flex; flex-direction:column; gap: 0; }
+  .tl-item{ display:grid; grid-template-columns: 88px 24px 1fr; gap: 0; }
+  .tl-time{ font-family:'IBM Plex Mono',monospace; font-size: 13px; color: var(--ink-faint); padding-top: 22px; }
+  .tl-rail{ display:flex; flex-direction:column; align-items:center; }
+  .tl-dot{ width:12px; height:12px; border-radius:50%; background: var(--lavender); margin-top: 24px; flex:none; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line); }
+  .tl-bar{ flex:1; width:1.5px; background: var(--line); margin: 4px 0; }
+  .tl-item:last-child .tl-bar{ display:none; }
+  .tl-content{ padding: 14px 0 32px; }
+  .tl-content h3{ font-size: 17px; margin-bottom: 6px; }
+  .tl-content p{ font-size: 14.5px; color: var(--ink-soft); max-width: 52ch; }
+
+  /* ---------- QUOTES ---------- */
+  .quote-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .quote-card{ background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 26px; transition: transform .2s ease, box-shadow .2s ease; }
+  .quote-card:hover{ transform: translateY(-5px); box-shadow: 0 22px 40px -28px rgba(44,35,64,0.4); }
+  .quote-mark{ font-family:'Fraunces',serif; font-size: 40px; color: var(--lavender-deep); line-height:1; margin-bottom: 6px; }
+  .quote-card p.quote-text{ font-size: 14.8px; color: var(--ink); margin-bottom: 18px; }
+  .quote-person{ display:flex; align-items:center; gap: 10px; }
+  .quote-avatar{ width: 34px; height:34px; border-radius:50%; flex:none; }
+  .quote-person .name{ font-size: 13.5px; font-weight:600; }
+  .quote-person .role{ font-size: 12px; color: var(--ink-faint); }
+
+  /* ---------- FAQ ---------- */
+  .faq-list{ display:flex; flex-direction:column; gap: 12px; }
+  .faq-item{ background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); overflow:hidden; }
+  .faq-q{
+    width:100%; text-align:left; background:none; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap: 20px;
+    padding: 20px 24px; font-family:'Inter',sans-serif; font-size: 15.5px; font-weight: 600; color: var(--ink);
+  }
+  .faq-chevron{ flex:none; width: 20px; height:20px; transition: transform .3s ease; color: var(--lavender-deep); }
+  .faq-item.open .faq-chevron{ transform: rotate(135deg); }
+  .faq-a{ max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+  .faq-a-inner{ padding: 0 24px 22px; font-size: 14.5px; color: var(--ink-soft); max-width: 68ch; }
+
+  /* ---------- TRUST ---------- */
+  .trust-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
+  .trust-card{ padding: 28px 6px; transition: transform .2s ease; }
+  .trust-card:hover{ transform: translateY(-4px); }
+  .trust-card .idx{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; color: var(--ink-faint); }
+  .trust-card h3{ font-size:17px; margin: 14px 0 10px; }
+  .trust-card p{ font-size: 14px; color: var(--ink-soft); }
+
+  /* ---------- CTA ---------- */
+  .cta{
+    background: linear-gradient(135deg, #EFE8FA 0%, #FBF0E4 55%, #E9F3F0 100%);
+    background-size: 200% 200%;
+    animation: gradientMove 12s ease infinite;
+    border-radius: 32px; padding: 72px 56px; text-align:center; position: relative; overflow:hidden;
+  }
+  @keyframes gradientMove{ 0%{ background-position: 0% 50%; } 50%{ background-position: 100% 50%; } 100%{ background-position: 0% 50%; } }
+  .cta h2{ font-size: clamp(30px,4vw,44px); max-width: 18ch; margin: 0 auto 18px; }
+  .cta p{ color: var(--ink-soft); font-size: 16.5px; max-width: 46ch; margin: 0 auto 32px; }
+  .cta-actions{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+
+  footer{ padding: 56px 0 40px; border-top: 1px solid var(--line); margin-top: 40px; }
+  .footer-inner{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap: 16px; }
+  .footer-inner p{ font-size: 13px; color: var(--ink-faint); }
+
+  @media (max-width: 900px){
+    .stat-grid, .steps, .vert-grid, .metrics-bar, .safety-grid, .channel-grid, .quote-grid{ grid-template-columns: repeat(2,1fr); }
+    .trust-grid{ grid-template-columns: 1fr; }
+    .transcript-layout{ grid-template-columns: 1fr; }
+    .nav-links{ display:none; }
+    .steps::before{ display:none; }
+  }
+  @media (max-width: 560px){
+    .stat-grid, .steps, .vert-grid, .metrics-bar, .safety-grid, .channel-grid, .quote-grid{ grid-template-columns: 1fr; }
+    .wrap{ padding: 0 20px; }
+    .cta{ padding: 48px 24px; }
+    .tl-item{ grid-template-columns: 60px 20px 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition-duration: 0.001ms !important; }
+    .reveal, .stagger-item{ opacity: 1 !important; transform: none !important; }
+  }
+
+  :focus-visible{ outline: 2px solid var(--lavender-deep); outline-offset: 3px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="nav-inner">
+    <div class="logo"><span class="logo-mark"></span> Stella</div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#verticals">For your business</a>
+      <a href="#faq">FAQ</a>
+      <a href="#trust">Trust &amp; privacy</a>
+    </div>
+    <a href="#cta" class="btn btn-primary">Talk to Stella</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <span class="orb orb-1" aria-hidden="true"></span>
+  <span class="orb orb-2" aria-hidden="true"></span>
+  <span class="orb orb-3" aria-hidden="true"></span>
+  <div class="wrap">
+    <div class="eyebrow">Answers every call, day or night</div>
+    <h1>The receptionist<br>that <em>never</em> clocks out.</h1>
+    <p class="hero-sub">Stella picks up your business line at 2pm and 2am alike — booking appointments, taking messages, and routing calls, in a voice callers mistake for a real person.</p>
+    <div class="hero-actions">
+      <a href="#cta" class="btn btn-primary">Give Stella your line</a>
+      <a href="#how" class="btn btn-ghost">See how a call goes</a>
+    </div>
+
+    <div class="stella-line-section reveal">
+      <div class="line-card">
+        <div class="line-card-top">
+          <h3>Stella is answering somewhere right now</h3>
+          <span class="now-label" id="nowLabel">calculating local time…</span>
+        </div>
+        <div class="ribbon-outer">
+          <div class="ribbon" id="ribbon">
+            <div class="tick" style="left:23%"><span class="label">5:40am — new patient intake, Riverside Clinic</span><span class="dot"></span></div>
+            <div class="tick" style="left:47%"><span class="label">12:15pm — haircut booked, Bloom &amp; Co Salon</span><span class="dot"></span></div>
+            <div class="tick" style="left:73%"><span class="label">7:50pm — special order, Corner Market</span><span class="dot"></span></div>
+            <div class="tick" style="left:94%"><span class="label">2:20am — call routed to on-call vet</span><span class="dot"></span></div>
+            <div class="now-dot" id="nowDot"></div>
+          </div>
+        </div>
+        <div class="ribbon-caption">
+          <span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>12am</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">The cost of a missed call</div>
+      <h2>Every unanswered ring is a customer deciding whether to try again.</h2>
+      <p>Most don't. Hiring around the clock is expensive, and answering services that sound like a script lose trust in the first ten seconds.</p>
+    </div>
+    <div class="stat-grid reveal-stagger reveal">
+      <div class="stat-card stagger-item">
+        <div class="num"><span>1–2</span> rings</div>
+        <p>How quickly Stella picks up, at any hour, every time your line rings.</p>
+      </div>
+      <div class="stat-card stagger-item">
+        <div class="num">24 / 7</div>
+        <p>Coverage without shift schedules, sick days, or a second phone line.</p>
+      </div>
+      <div class="stat-card stagger-item">
+        <div class="num">0</div>
+        <p>Missed bookings during the hours your front desk is closed.</p>
+      </div>
+    </div>
+
+    <div class="metrics-bar reveal">
+      <div class="metric"><div class="metric-num" data-count="92" data-suffix="%">0%</div><div class="metric-label">calls resolved without a human</div></div>
+      <div class="metric"><div class="metric-num" data-count="47" data-suffix="s">0s</div><div class="metric-label">average time to first booking</div></div>
+      <div class="metric"><div class="metric-num" data-count="4" data-suffix=" verticals">0</div><div class="metric-label">ready-made business templates</div></div>
+      <div class="metric"><div class="metric-num" data-count="1" data-suffix=" week">0</div><div class="metric-label">typical time to go live</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="section-alt">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Inside a call</div>
+      <h2>Four steps, every time — no phone tree, no hold music.</h2>
+      <p>Stella follows the same steady rhythm on every call, whether it ends in a booking, a message, or a warm transfer to a person.</p>
+    </div>
+    <div class="steps reveal-stagger reveal">
+      <div class="step stagger-item">
+        <div class="step-icon" style="background:var(--peach);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6c0 8 6 14 14 14l2-4-6-2-2 2c-2-1-4-3-5-5l2-2-2-6-4 2z" fill="#2C2340" opacity="0.75"/></svg>
+        </div>
+        <span class="idx">01</span>
+        <h3>Answer</h3>
+        <p>Picks up within a ring or two with your greeting, in your business's name.</p>
+      </div>
+      <div class="step stagger-item">
+        <div class="step-icon" style="background:var(--sky);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#2C2340" stroke-width="1.6"/><path d="M12 8v4l3 2" stroke="#2C2340" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <span class="idx">02</span>
+        <h3>Understand</h3>
+        <p>Listens for what the caller actually needs — booking, reschedule, a question, or a person.</p>
+      </div>
+      <div class="step stagger-item">
+        <div class="step-icon" style="background:var(--mint);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="#2C2340" stroke-width="1.6"/><path d="M8 3v4M16 3v4M4 10h16" stroke="#2C2340" stroke-width="1.6"/></svg>
+        </div>
+        <span class="idx">03</span>
+        <h3>Act</h3>
+        <p>Checks real availability, books the slot, takes intake details, or transfers the call.</p>
+      </div>
+      <div class="step stagger-item">
+        <div class="step-icon" style="background:var(--lavender);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="#2C2340" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="idx">04</span>
+        <h3>Confirm</h3>
+        <p>Reads the details back, sends a confirmation, and signs off — nothing left unclear.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="verticals">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">One receptionist, any front desk</div>
+      <h2>Stella learns your business from a config, not a rebuild.</h2>
+      <p>The voice underneath is the same everywhere. What changes is the setup: your hours, your services, your intake questions, your escalation rules.</p>
+    </div>
+    <div class="vert-grid reveal-stagger reveal">
+      <div class="vert-card stagger-item">
+        <div class="vert-icon" style="background:var(--sky);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v6M9 6h6" stroke="#2C2340" stroke-width="1.7" stroke-linecap="round"/><rect x="4" y="9" width="16" height="12" rx="2" stroke="#2C2340" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Clinics</h3>
+        <p>Books appointments, takes new-patient intake, and follows shortened retention rules for sensitive calls.</p>
+        <span class="vert-tag" style="background:#E4F1F6;">Calendar + intake</span>
+      </div>
+      <div class="vert-card stagger-item">
+        <div class="vert-icon" style="background:var(--coral);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4c2 2 3 4 3 6a3 3 0 11-6 0c0-2 1-4 3-6z" stroke="#2C2340" stroke-width="1.6"/><path d="M6 18c1-3 3-4 6-4s5 1 6 4" stroke="#2C2340" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Salons</h3>
+        <p>Books services, reschedules with a name and a callback number, confirms the day before.</p>
+        <span class="vert-tag" style="background:#FBE4E0;">Calendar only</span>
+      </div>
+      <div class="vert-card stagger-item">
+        <div class="vert-icon" style="background:var(--butter);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 8h16l-1.5 11a2 2 0 01-2 2H7.5a2 2 0 01-2-2L4 8z" stroke="#2C2340" stroke-width="1.6"/><path d="M8 8V6a4 4 0 018 0v2" stroke="#2C2340" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Grocery stores</h3>
+        <p>Takes special orders and questions, and is upfront when something needs a person — like today's prices.</p>
+        <span class="vert-tag" style="background:#FBF2DA;">Intake only</span>
+      </div>
+      <div class="vert-card stagger-item">
+        <div class="vert-icon" style="background:var(--lavender);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.4" stroke="#2C2340" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.4" stroke="#2C2340" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.4" stroke="#2C2340" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.4" stroke="#2C2340" stroke-width="1.5"/></svg>
+        </div>
+        <h3>General offices</h3>
+        <p>Routes calls to the right department by name, takes messages, and forwards them the way you already work.</p>
+        <span class="vert-tag" style="background:#EEE4F7;">Routing + messages</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="transcript" class="section-alt">
+  <div class="wrap">
+    <div class="transcript-layout">
+      <div class="transcript-card reveal">
+        <div class="transcript-head"><span class="rec"></span><span class="mono">Bloom &amp; Co Salon · incoming call · 6:42pm</span></div>
+        <div class="bubble stella"><span class="who">Stella</span>Thanks for calling Bloom &amp; Co, this is Stella — how can I help?</div>
+        <div class="bubble caller"><span class="who">Caller</span>Hi, I need to move my appointment on Thursday.</div>
+        <div class="bubble stella"><span class="who">Stella</span>Sure — I see your 2pm color appointment. What day works better?</div>
+        <div class="bubble caller"><span class="who">Caller</span>Could we do Friday afternoon instead?</div>
+        <div class="bubble stella"><span class="who">Stella</span>Friday at 3:30 is open. So that's moved to Friday the 11th at 3:30pm — I'll text you the confirmation now.</div>
+      </div>
+      <div class="transcript-copy reveal">
+        <h2>It sounds like a person who knows your business, not a script.</h2>
+        <p>Stella never talks over a caller, doesn't guess on a time or a name, and always reads important details back before hanging up.</p>
+        <ul class="check-list">
+          <li><span class="mark"></span>Stops speaking instantly if the caller starts talking</li>
+          <li><span class="mark"></span>Re-asks rather than guessing on anything critical</li>
+          <li><span class="mark"></span>Confirms every booking, cancellation, and change out loud</li>
+          <li><span class="mark"></span>Hands off to a person the moment a caller asks for one</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="safety">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">When something goes sideways</div>
+      <h2>Calls don't hang in dead air, even when Stella gets stuck.</h2>
+      <p>Every call runs with the same set of guardrails underneath it, regardless of business or vertical.</p>
+    </div>
+    <div class="safety-grid reveal-stagger reveal">
+      <div class="safety-card stagger-item">
+        <span class="safety-num">01</span>
+        <div><h3>Silence timeout</h3><p>If a caller goes quiet, Stella checks in once, then offers a human transfer rather than waiting forever.</p></div>
+      </div>
+      <div class="safety-card stagger-item">
+        <span class="safety-num">02</span>
+        <div><h3>Stuck-call detection</h3><p>If the conversation is visibly going in circles, the call ends gracefully instead of looping.</p></div>
+      </div>
+      <div class="safety-card stagger-item">
+        <span class="safety-num">03</span>
+        <div><h3>Max call length</h3><p>A duration cap keeps any single call from running away, with a clear handoff before the limit hits.</p></div>
+      </div>
+      <div class="safety-card stagger-item">
+        <span class="safety-num">04</span>
+        <div><h3>Automatic recovery</h3><p>Brief hiccups in the voice connection are absorbed and retried so the caller never hears dead air.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="channels" class="section-alt">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">After the call ends</div>
+      <h2>Every outcome lands wherever you already look.</h2>
+      <p>Bookings, messages, and intake submissions can go out through any combination of these — no dashboard required to stay in the loop.</p>
+    </div>
+    <div class="channel-grid reveal-stagger reveal">
+      <div class="channel-card stagger-item">
+        <div class="channel-icon" style="background:var(--peach);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z" stroke="#2C2340" stroke-width="1.6"/><path d="M4 7l8 6 8-6" stroke="#2C2340" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Email</h3>
+        <p>A plain summary lands in your inbox the moment a call ends — no login needed.</p>
+      </div>
+      <div class="channel-card stagger-item">
+        <div class="channel-icon" style="background:var(--sky);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 3L4 14h7l-1 7 9-11h-7l1-7z" stroke="#2C2340" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Webhook</h3>
+        <p>Push straight into the ticketing, CRM, or order system you already run day to day.</p>
+      </div>
+      <div class="channel-card stagger-item">
+        <div class="channel-icon" style="background:var(--mint);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13H6z" stroke="#2C2340" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="#2C2340" stroke-width="1.5"/></svg>
+        </div>
+        <h3>File record</h3>
+        <p>A local record of every call, kept automatically — nothing to set up on day one.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="onboarding">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Getting started</div>
+      <h2>From a blank config to a live line, in a few sittings.</h2>
+    </div>
+    <div class="timeline reveal">
+      <div class="tl-item">
+        <div class="tl-time mono">Day 1</div>
+        <div class="tl-rail"><div class="tl-dot"></div><div class="tl-bar"></div></div>
+        <div class="tl-content"><h3>Pick the closest template</h3><p>Clinic, salon, grocery store, or general office — start from a ready-made config instead of a blank page.</p></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time mono">Day 2–3</div>
+        <div class="tl-rail"><div class="tl-dot"></div><div class="tl-bar"></div></div>
+        <div class="tl-content"><h3>Fill in your details</h3><p>Hours, greeting, services, intake questions, and where the calendar lives — all in one file, no engineer required.</p></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time mono">Day 4</div>
+        <div class="tl-rail"><div class="tl-dot"></div><div class="tl-bar"></div></div>
+        <div class="tl-content"><h3>Test on a sandbox line</h3><p>Run real calls against a test number — interruptions, background noise, accents, silence, all before anything's live.</p></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time mono">Day 5+</div>
+        <div class="tl-rail"><div class="tl-dot"></div></div>
+        <div class="tl-content"><h3>Go live, off-hours first</h3><p>Point your line to Stella outside business hours to start, then expand coverage once you've seen it handle real calls.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="quotes" class="section-alt">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">From the front desk</div>
+      <h2>What it changes for the people who used to answer every call themselves.</h2>
+    </div>
+    <div class="quote-grid reveal-stagger reveal">
+      <div class="quote-card stagger-item">
+        <div class="quote-mark">&ldquo;</div>
+        <p class="quote-text">Our voicemail used to fill up by Monday lunch. Now Thursday's fully booked before we've even opened.</p>
+        <div class="quote-person">
+          <div class="quote-avatar" style="background:var(--peach);"></div>
+          <div><div class="name">Office manager</div><div class="role">Family medicine clinic</div></div>
+        </div>
+      </div>
+      <div class="quote-card stagger-item">
+        <div class="quote-mark">&ldquo;</div>
+        <p class="quote-text">Clients reschedule constantly. Now it happens while I'm mid-cut instead of on a callback list.</p>
+        <div class="quote-person">
+          <div class="quote-avatar" style="background:var(--coral);"></div>
+          <div><div class="name">Owner</div><div class="role">Hair salon</div></div>
+        </div>
+      </div>
+      <div class="quote-card stagger-item">
+        <div class="quote-mark">&ldquo;</div>
+        <p class="quote-text">It knows exactly when to say "let me get someone" instead of guessing. That's the part that won us over.</p>
+        <div class="quote-person">
+          <div class="quote-avatar" style="background:var(--sky);"></div>
+          <div><div class="name">General manager</div><div class="role">Neighborhood grocery</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Questions worth asking</div>
+      <h2>Before you hand over your line.</h2>
+    </div>
+    <div class="faq-list reveal">
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Does it actually sound like a person?<svg class="faq-chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">Callers speak naturally and Stella responds in kind, including stopping mid-sentence the moment someone talks over it. Most callers don't realize until told.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">What happens when it genuinely can't help?<svg class="faq-chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">It transfers to a real line or takes a detailed message with a callback promise — the moment a caller asks for a person, or after a couple of failed attempts to understand them.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Can it work with our existing calendar?<svg class="faq-chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">Google Calendar is supported today, checked in real time before anything is booked. Businesses that don't take appointments — like a grocery store — can skip the calendar entirely.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">What happens to call recordings?<svg class="faq-chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">Recording is optional per business, callers hear a consent notice up front where required, and retention windows are set independently for recordings, transcripts, and messages — shorter by default for sensitive calls.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How long does setup actually take?<svg class="faq-chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">Starting from the closest business template, most setups are ready to test within a few days and live within a week — off-hours first, then expanded once you've seen it handle real calls.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="trust" class="section-alt">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Trust &amp; privacy</div>
+      <h2>Built with the assumption that some calls carry real weight.</h2>
+      <p>Recording, retention, and data handling are set per business — not a single blanket setting for every caller.</p>
+    </div>
+    <div class="trust-grid reveal-stagger reveal">
+      <div class="trust-card stagger-item">
+        <span class="idx mono">consent</span>
+        <h3>Spoken up front</h3>
+        <p>Callers hear a recording notice before anything is captured, matching two-party-consent requirements where they apply.</p>
+      </div>
+      <div class="trust-card stagger-item">
+        <span class="idx mono">retention</span>
+        <h3>Set per business</h3>
+        <p>Recordings, transcripts, and messages each have their own retention window — shorter by default for sensitive calls.</p>
+      </div>
+      <div class="trust-card stagger-item">
+        <span class="idx mono">review</span>
+        <h3>Checked before go-live</h3>
+        <p>Businesses handling health, legal, or financial calls go through a data-handling review before taking a single real call.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="wrap">
+    <div class="cta reveal">
+      <h2>Give your line to someone who never leaves it unanswered.</h2>
+      <p>Set up takes a config file, not a development sprint. Most businesses are live within a week.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn btn-primary">Give Stella your line</a>
+        <a href="#" class="btn btn-ghost">Book a walkthrough call</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="logo" style="font-size:16px;"><span class="logo-mark" style="width:18px;height:18px;"></span> Stella</div>
+    <p>Answering phones since before you woke up.</p>
+  </div>
+</footer>
+
+<script>
+  // Nav shadow on scroll
+  const navEl = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    navEl.classList.toggle('scrolled', window.scrollY > 8);
+  });
+
+  // Position the "right now" dot on the 24-hour ribbon based on the visitor's local time.
+  function placeNowDot(){
+    const now = new Date();
+    const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+    const pct = (minutesSinceMidnight / (24*60)) * 100;
+    const dot = document.getElementById('nowDot');
+    const label = document.getElementById('nowLabel');
+    if(dot){ dot.style.left = pct + '%'; }
+    if(label){
+      const timeStr = now.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
+      label.textContent = 'right now, ' + timeStr + ' where you are';
+    }
+  }
+  placeNowDot();
+  setInterval(placeNowDot, 30000);
+
+  // Scroll reveal via IntersectionObserver
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('in-view');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => io.observe(el));
+
+  // Count-up metrics
+  const metricEls = document.querySelectorAll('.metric-num');
+  const countIo = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        const el = entry.target;
+        const target = parseFloat(el.getAttribute('data-count'));
+        const suffix = el.getAttribute('data-suffix') || '';
+        const duration = 1200;
+        const start = performance.now();
+        function tick(now){
+          const progress = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const value = Math.round(target * eased);
+          el.textContent = value + suffix;
+          if(progress < 1){ requestAnimationFrame(tick); }
+        }
+        requestAnimationFrame(tick);
+        countIo.unobserve(el);
+      }
+    });
+  }, { threshold: 0.4 });
+  metricEls.forEach(el => countIo.observe(el));
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-item').forEach(item => {
+    const btn = item.querySelector('.faq-q');
+    const answer = item.querySelector('.faq-a');
+    btn.addEventListener('click', () => {
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(openItem => {
+        if(openItem !== item){
+          openItem.classList.remove('open');
+          openItem.querySelector('.faq-q').setAttribute('aria-expanded','false');
+          openItem.querySelector('.faq-a').style.maxHeight = null;
+        }
+      });
+      if(isOpen){
+        item.classList.remove('open');
+        btn.setAttribute('aria-expanded','false');
+        answer.style.maxHeight = null;
+      } else {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded','true');
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

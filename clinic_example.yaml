@@ -1,0 +1,80 @@
+slug: clinic_example
+display_name: "Riverside Family Clinic"
+vertical: clinic
+timezone: "America/New_York"
+assistant_name: "Stella"
+
+greeting: >
+  Thanks for calling Riverside Family Clinic, this is Stella — how can I help
+  you today?
+
+persona_notes: >
+  Warm, efficient, never over-apologetic. This is a medical office — be
+  extra careful not to guess on names, DOBs, or appointment times; always
+  read them back for confirmation. Never offer medical advice; if asked a
+  medical question, offer to take a message for the nurse line.
+
+business_hours:
+  monday: "08:00-17:00"
+  tuesday: "08:00-17:00"
+  wednesday: "08:00-17:00"
+  thursday: "08:00-17:00"
+  friday: "08:00-15:00"
+  saturday: null
+  sunday: null
+
+faqs:
+  "Do you accept walk-ins?": "We see walk-ins for urgent same-day needs, but appointments are recommended."
+  "Where are you located?": "123 Riverside Ave, Suite 200."
+  "Do you take my insurance?": "I can take a message and have our billing team call you back with insurance details."
+
+calendar:
+  provider: fake          # switch to "google" once real OAuth creds are ready
+  appointment_duration_minutes: 20
+
+intake_case_types:
+  - name: new_patient
+    description: "Collect basic info for a first-time patient."
+    questions:
+      - id: full_name
+        prompt: "Can I get your full name?"
+        required: true
+        critical: true
+      - id: dob
+        prompt: "And your date of birth?"
+        required: true
+        critical: true
+        allow_dtmf: true
+      - id: reason_for_visit
+        prompt: "What's the reason for your visit?"
+        required: true
+      - id: callback_number
+        prompt: "What's the best number to reach you at?"
+        required: true
+        critical: true
+        allow_dtmf: true
+
+dtmf_routes:
+  - digit: "0"
+    label: "Front desk"
+    action: "transfer:front_desk"
+  - digit: "9"
+    label: "Nurse line"
+    action: "transfer:nurse_line"
+
+notifications:
+  channels: [file, email]
+  email_to: "frontdesk@riversideclinic.example.com"
+  smtp_password: "${CLINIC_EXAMPLE_SMTP_PASSWORD}"
+
+recording:
+  enabled: true
+  storage: local
+  consent_preamble: >
+    This call may be recorded for quality and record-keeping purposes.
+  retention_days_recordings: 30
+  retention_days_transcripts: 180
+  retention_days_messages: 180
+
+max_call_duration_minutes: 12
+silence_timeout_seconds: 8

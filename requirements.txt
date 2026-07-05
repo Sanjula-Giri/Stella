@@ -1,0 +1,8 @@
+livekit-agents>=0.10.0
+livekit-plugins-openai>=0.10.0
+pydantic>=2.6
+pyyaml>=6.0
+python-dotenv>=1.0
+google-auth>=2.29.0
+google-auth-oauthlib>=1.2.0
+google-api-python-client>=2.120.0
